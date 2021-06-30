@@ -8,4 +8,6 @@ npm uninstall --save @fullcalendar/common @fullcalendar/core  @fullcalendar/dayg
 # And install them again : 
 npm install --save @fullcalendar/common @fullcalendar/core  @fullcalendar/daygrid @fullcalendar/interaction @fullcalendar/list @fullcalendar/moment @fullcalendar/premium-common @fullcalendar/react @fullcalendar/resource-common @fullcalendar/resource-timeline @fullcalendar/scrollgrid @fullcalendar/timegrid @fullcalendar/timeline
 
+# Scan Practice (setFocusToScan) on PackagingPractice
+
 
