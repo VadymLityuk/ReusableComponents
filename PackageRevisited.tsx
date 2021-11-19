@@ -10,7 +10,7 @@ import { translateString, StringTranslator, isNullOrUndefined,AutocompleteCompon
 import FullWidthTabs from "./PackageTab";
 import { Grid, Switch, OutlinedInput, FormControlLabel, Button,TextField,MenuItem } from "@material-ui/core";
 import {ImBarcode} from "react-icons/im"
-
+import Autocomplete, { createFilterOptions } from '@material-ui/lab/Autocomplete';
 type Props = RouteComponentProps<{}>;
 
 export class PackageLanding extends React.Component<Props,{
@@ -34,12 +34,15 @@ export class PackageLanding extends React.Component<Props,{
    dropdsdata: Array<any>;
    getDropdownList: string;
    SelectedPOtype: any;
+   selectedLabel: string;
 }>{
     private scan = createRef<HTMLInputElement>();
+    private packagetypeRef =createRef<HTMLInputElement>();
     setFocusToScan: any;
     constructor(props) {
         super(props);
         this.setFocusToScan = React.createRef<HTMLInputElement>();
+        this.packagetypeRef = React.createRef<HTMLInputElement>();
         this.handleCreateButton = this.handleCreateButton.bind(this);
         this.handleTabChange = this.handleTabChange.bind(this);
         this.handleTextFieldChange = this.handleTextFieldChange.bind(this);
@@ -66,7 +69,8 @@ export class PackageLanding extends React.Component<Props,{
             selectedOperation : {},
             dropdsdata : [],
             getDropdownList: '',
-            SelectedPOtype: {}
+            SelectedPOtype: {},
+            selectedLabel: ''
         }
     }
 
@@ -96,6 +100,7 @@ export class PackageLanding extends React.Component<Props,{
                      selfThis.getDropdDownList()
                     });
                 })).catch(err => {
+                    console.log('ERROR DB')
                     errorLogMessages(err);
                 });
     }
@@ -118,21 +123,23 @@ export class PackageLanding extends React.Component<Props,{
              dropdowndata.map((v: any) => {
                      if(dropdsdata === v.KEY_VALUE ){
                          selectedOperation ={
-                             label :v.descrip,
+                             label :v.DESCRIP,
                              value: v.KEY_VALUE
                            }
                      }
                      listOperationNo.push({
-                        label :v.KEY_VALUE + "    , " +  v.descrip,
+                        label :v.KEY_VALUE + "    , " +  v.DESCRIP,
                         value: v.KEY_VALUE
                      })
                  })
-             console.log( 'TEST OPTIONS LIST',listOperationNo,data)
-             self.setState ({ selectedOperation,listOperationNo})
+             console.log( 'TEST OPTIONS LIST',listOperationNo,selectedOperation)
+        
+             self.setState ({ selectedOperation,listOperationNo,
+                 selectedLabel:  ''
+            })
+             
              }) )
  }
-    
-
     handleScan(data) {
         this.setState({barcode:data})
     }
@@ -142,7 +149,10 @@ export class PackageLanding extends React.Component<Props,{
       }
 
     handleChange = (event: any) => {
+        console.log("cbandra",event.currentTarget)
         const { name, value } = event.currentTarget;
+
+        console.log("cbandra",name+"cbandra", value)
         // this.setState({ ...this.state, [name]: value }, () => {
         switch (name) {
             case 'productType':
@@ -192,7 +202,11 @@ export class PackageLanding extends React.Component<Props,{
     handleTextFieldChange = (event,s) => {
         console.log("test event",s)
         const { name,value } = event.target;
-    this.setState({ selectedBarcode: s })
+    this.setState({ selectedBarcode: s, 
+        selectedLabel: s 
+    })
+    
+          this.onKeyPress
     }
     onKeyPress = (ev) =>{
         if(ev.key === 'Enter') {
@@ -213,18 +227,19 @@ export class PackageLanding extends React.Component<Props,{
     fetchPackageNo() {
         let selfThis = this;
         let {server, userId, isEntryMode, selectedInsertType,selectedBarcode,barcode} = this.state;
-
-        //barcode = selectedBarcode.value
-
-        if(!isEntryMode && selectedInsertType !== 'INV'){
-           // barcode = selectedInsertType + selectedBarcode.value;barcode
-           barcode = selectedInsertType + selectedBarcode.value;
-
-        }
-        else if ( !isEntryMode){
-            barcode = selectedBarcode.value
-        }
+        
+       //barcode = selectedBarcode.value
+       if(!isEntryMode && selectedInsertType !== 'INV'){
+        // barcode 
+        // barcode = selectedInsertType + selectedBarcode.value;barcode
+        barcode = selectedInsertType + selectedBarcode.value;
+   
+     } 
+     else if ( !isEntryMode){
+         barcode = selectedBarcode.value
+     }
         let data = [`${server}/api/openPackageFromBarcode/${barcode}/${userId}`]
+     
         axios.all(data.map(l => axios.get(l)))
             .then(
                 axios.spread( (...res) => {
@@ -235,24 +250,29 @@ export class PackageLanding extends React.Component<Props,{
                         packageNO: packageNO,
                         barcode
                     }, () => {
-                        if( packageNO !== null //&& 
+                        if( packageNO !== null || packageNO !== 0 //&& 
                             //packageNO !== 0
                             ){
                             selfThis.redirectHandler()
                         }
+                        
                     });
                 })).catch(err => {
                     errorLogMessages(err);
+                    selfThis.clearInput()
                 });
+                console.log(this.state.packageNO, "datacheck")
     }
     redirectHandler = () => {
         this.props.history.push('/P4A/packagelanding/'+this.state.packageNO)
+    }
+    clearInput = () => {
+        this.setState({barcode : ''})
     }
     render() {
         const {
             selectedType, packageTypes, barcode, isEntryMode, insertPackageTypes, selectedInsertType,selectedBarcode,dropdsdata,selectedOperation,listOperationNo
         } = this.state
-  
         return (
             <div>
                 <div className="d-flex flex-row flex-nowrap justify-content-center align-items-center pt-4 pb-2" id="pageTitle" style={{ fontSize: '1em' }}>
@@ -269,11 +289,6 @@ export class PackageLanding extends React.Component<Props,{
                                         {isEntryMode ? <StringTranslator>Scan your Package here</StringTranslator> : <StringTranslator>Enter your Package here</StringTranslator>}
                                 </p>
                                 <hr></hr>
-                               {/** 
-                               <ul>
-                                    {dropdsdata.map(inv => <li style={{color:'black'}} key={inv.ID}>{inv.KEY_VALUE}, {inv.descrip}</li>)}
-                                </ul> 
-                               */} 
                                 </Grid>
                             <Grid item  style={{paddingTop: '12px'}}>
                                         <FormControlLabel
@@ -282,7 +297,7 @@ export class PackageLanding extends React.Component<Props,{
                                                     checked={isEntryMode}
                                                     onChange={(event) => {
                                                         this.setState({ isEntryMode: event.target.checked, barcode: ''});    
-                                                    //   this.setFocusToScan.current.focus()                                    
+                                                      this.setFocusToScan.current.focus()       
                                                     }}
                                                     color="primary"
                                                     value={isEntryMode}
@@ -311,40 +326,49 @@ export class PackageLanding extends React.Component<Props,{
                                         autoFocus = { true}
                                         onChange={(e) => this.handleChange(e)}
                                         onKeyPress={this.onKeyPress}/>
-                            </Grid>}   
+                                        </Grid>}   
                                 {!isEntryMode &&
                                 <div>
                             <Grid item style={{width: '300px'}}>
-                                 <AutocompleteComponent
-                                      id='combo'
-                                      label="Enter"
-                                      menuLimit={3}
-                                     options={listOperationNo}
-                                     selectedElement={selectedBarcode}
-                                      handleChange={ this.handleTextFieldChange}
-                                     />
-                            </Grid>
                             <Grid item style={{width: '300px',paddingTop: '12px'}}>
+                            </Grid>
+                            <Grid item style={{width: '300px',paddingTop: '12px',paddingBottom: '12px'}}>
                                     <SelectComponent 
                                         name="selectedInsertType"
                                         options={insertPackageTypes}
                                         value={selectedInsertType}
                                         handleChange={this.handleChange}/>
+                                    </Grid>
+                                    <Autocomplete
+                                        id="multiple-limit-tags"
+                                        options={listOperationNo}
+                                        getOptionLabel={(option) => option.label}
+                                        // defaultValue={this.state.selectedLabel}
+                                        value = {this.state.selectedLabel}
+                                        onChange = {this.handleTextFieldChange}
+                                        renderInput={(params) => (
+                                            <TextField
+                                            inputRef={this.setFocusToScan}
+                                            {...params} variant="outlined" label="Enter" placeholder="Enter your package number" />
+                                 )}
+                                />
+                            <Grid>
                             </Grid>
-                                </div>}
+                            </Grid>
+                            </div>}
                             <Grid container item direction="column" alignItems="center"  style={{ marginTop: '10px' }}>
                             <Grid item >
                                         <Button 
                                          variant="contained"
                                          size="medium"
                                          packNo={this.state.packageNO}
-                                        style={{backgroundColor: 'var(--backed-up2)',color:'white', opacity: isEntryMode ? 0.5 : 1 }}
+                                        style={{backgroundColor: 'var(--backed-up2)',color:'white', opacity: isEntryMode ? 0.5 : 1 }} 
                                             onClick={() =>{ 
-                                                this.fetchPackageNo()
+                                                this.fetchPackageNo()  
                                                 if( isEntryMode){
+                                                 this.setFocusToScan.current.focus()
                                                 //    this.setFocusToScan.current.focus()
-                                                }
-                                            }
+                                                }}
                                             } 
                                             disabled={isEntryMode}>
                                         <StringTranslator>VALIDATE</StringTranslator></Button>
@@ -353,7 +377,7 @@ export class PackageLanding extends React.Component<Props,{
                             <Grid id="barcode"  container direction="column" alignItems="center">
                                 <Grid item >
                                         <span className="text-secondary" style={{ fontSize: '1.4em'}}>
-                                            <strong>Create a Barcode</strong>
+                                        <strong> <StringTranslator>Create a barcode</StringTranslator></strong>
                                         </span>
                                         <hr></hr>
                             </Grid>
@@ -372,7 +396,7 @@ export class PackageLanding extends React.Component<Props,{
                                     <Grid item style={{marginTop:'23px',paddingBottom: '1rem'}}>
                                         <div className="col-12 col-sm-6 col-md-4 col-lg-2 col-xl-12">
                                             <Button 
-                                            variant="outlined"
+                                             variant="outlined"
                                              color="default"
                                              size="medium"
                                                 onClick={this.handleCreateButton}
