@@ -53,7 +53,7 @@ export class PackageLanding extends React.Component<Props,{
             server: server,
             packageNO: 0,
             barcode: "",
-            manualScan : "",
+            manualScan : "",hjklllllllllllllllllllllllllllllllll 
             autoScan : "",
             selectedType: 0,
             typeMap: new Map(),
