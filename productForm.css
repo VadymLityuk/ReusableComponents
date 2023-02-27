@@ -1,4 +1,5 @@
-#product_form_4285603643469 .bold_options_loaded {
+ <style>
+ #product_form_4285603643469 .bold_options_loaded {
   position: absolute;
   transform: translateY(150%);
 }
@@ -30,3 +31,5 @@ bold_option_element, .bold_option_element input, .bold_option_element select, .b
     /* transform: translateY(9%); */
     position: fixed;
 }
+
+  </style>
